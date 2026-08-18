@@ -1,4 +1,4 @@
-name: Terraform CI
+name: Terraform and Docker CI
 
 on:
   push:
@@ -38,3 +38,14 @@ jobs:
 
       - name: Terraform Plan
         run: terraform plan -input=false
+
+  docker:
+    name: Docker Build Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t iac-web-stack:ci .

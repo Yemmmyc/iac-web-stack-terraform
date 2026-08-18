@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Infrastructure as Code Web Stack powered by Terraform and Docker">
+    <title>IaC Web Stack | Terraform</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="background-grid"></div>
+
+    <header class="navbar">
+        <div class="brand">
+            <div class="brand-mark">⌘</div>
+            <div>
+                <span class="brand-name">IaC Web Stack</span>
+                <span class="brand-subtitle">Terraform Infrastructure</span>
+            </div>
+        </div>
+
+        <div class="nav-status">
+            <span class="status-dot"></span>
+            LOCAL ENVIRONMENT
+        </div>
+    </header>
+
+    <main>
+
+        <!-- Hero -->
+        <section class="hero">
+            <div class="hero-badge">
+                <span>◆</span>
+                INFRASTRUCTURE AS CODE
+            </div>
+
+            <h1>
+                Provisioned.<br>
+                <span>Reproducible.</span><br>
+                Consistent.
+            </h1>
+
+            <p class="hero-description">
+                A containerised web stack provisioned and managed entirely
+                through Terraform — eliminating manual infrastructure
+                configuration and configuration drift.
+            </p>
+
+            <div class="hero-actions">
+                <a href="#architecture" class="primary-button">
+                    Explore Infrastructure
+                    <span>↓</span>
+                </a>
+
+                <a href="#technology" class="secondary-button">
+                    View Technology
+                </a>
+            </div>
+
+            <div class="hero-meta">
+                <div>
+                    <span class="meta-label">ENVIRONMENT</span>
+                    <strong>LOCAL / ZERO COST</strong>
+                </div>
+
+                <div>
+                    <span class="meta-label">PROVISIONER</span>
+                    <strong>TERRAFORM</strong>
+                </div>
+
+                <div>
+                    <span class="meta-label">WEB SERVER</span>
+                    <strong>NGINX</strong>
+                </div>
+            </div>
+        </section>
+
+        <!-- Status -->
+        <section class="section">
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">SYSTEM STATUS</span>
+                    <h2>Infrastructure health</h2>
+                </div>
+
+                <div class="live-indicator">
+                    <span class="status-dot"></span>
+                    LIVE
+                </div>
+            </div>
+
+            <div class="status-grid">
+
+                <article class="status-card">
+                    <div class="card-top">
+                        <span class="card-icon terraform-icon">TF</span>
+                        <span class="card-state">READY</span>
+                    </div>
+
+                    <h3>Terraform</h3>
+
+                    <p>
+                        Infrastructure definition and lifecycle management.
+                    </p>
+
+                    <div class="card-footer">
+                        <span>VERSION</span>
+                        <strong>1.15.x</strong>
+                    </div>
+                </article>
+
+                <article class="status-card">
+                    <div class="card-top">
+                        <span class="card-icon docker-icon">◇</span>
+                        <span class="card-state">RUNNING</span>
+                    </div>
+
+                    <h3>Docker</h3>
+
+                    <p>
+                        Container runtime for the application web stack.
+                    </p>
+
+                    <div class="card-footer">
+                        <span>RUNTIME</span>
+                        <strong>CONTAINER</strong>
+                    </div>
+                </article>
+
+                <article class="status-card">
+                    <div class="card-top">
+                        <span class="card-icon nginx-icon">N</span>
+                        <span class="card-state">HEALTHY</span>
+                    </div>
+
+                    <h3>NGINX</h3>
+
+                    <p>
+                        Lightweight web server serving the application.
+                    </p>
+
+                    <div class="card-footer">
+                        <span>PORT</span>
+                        <strong>8090</strong>
+                    </div>
+                </article>
+
+            </div>
+        </section>
+
+        <!-- Resources -->
+        <section class="section resources-section">
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">PROVISIONED RESOURCES</span>
+                    <h2>Infrastructure inventory</h2>
+                </div>
+            </div>
+
+            <div class="resource-panel">
+
+                <div class="resource-row resource-header">
+                    <span>RESOURCE</span>
+                    <span>TYPE</span>
+                    <span>STATUS</span>
+                    <span>ENVIRONMENT</span>
+                </div>
+
+                <div class="resource-row">
+                    <div class="resource-name">
+                        <span class="resource-symbol">◈</span>
+                        <strong>iac-web-network</strong>
+                    </div>
+                    <span>Docker Network</span>
+                    <span class="table-status">
+                        <i></i> ACTIVE
+                    </span>
+                    <span>LOCAL</span>
+                </div>
+
+                <div class="resource-row">
+                    <div class="resource-name">
+                        <span class="resource-symbol">▣</span>
+                        <strong>iac-web-stack</strong>
+                    </div>
+                    <span>Container</span>
+                    <span class="table-status">
+                        <i></i> RUNNING
+                    </span>
+                    <span>LOCAL</span>
+                </div>
+
+                <div class="resource-row">
+                    <div class="resource-name">
+                        <span class="resource-symbol">N</span>
+                        <strong>nginx-web-server</strong>
+                    </div>
+                    <span>Web Server</span>
+                    <span class="table-status">
+                        <i></i> HEALTHY
+                    </span>
+                    <span>LOCAL</span>
+                </div>
+
+                <div class="resource-row">
+                    <div class="resource-name">
+                        <span class="resource-symbol">₦</span>
+                        <strong>Infrastructure Cost</strong>
+                    </div>
+                    <span>Cloud Resource</span>
+                    <span class="table-status">
+                        <i></i> ₦0
+                    </span>
+                    <span>ZERO COST</span>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Architecture -->
+        <section class="section architecture-section" id="architecture">
+
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">INFRASTRUCTURE FLOW</span>
+                    <h2>From code to running infrastructure</h2>
+                </div>
+            </div>
+
+            <div class="architecture">
+
+                <div class="architecture-step">
+                    <div class="step-number">01</div>
+                    <div class="step-icon">TF</div>
+                    <h3>Terraform</h3>
+                    <p>Defines the desired infrastructure state.</p>
+                </div>
+
+                <div class="flow-arrow">→</div>
+
+                <div class="architecture-step">
+                    <div class="step-number">02</div>
+                    <div class="step-icon">◇</div>
+                    <h3>Docker</h3>
+                    <p>Creates the reproducible container environment.</p>
+                </div>
+
+                <div class="flow-arrow">→</div>
+
+                <div class="architecture-step">
+                    <div class="step-number">03</div>
+                    <div class="step-icon">N</div>
+                    <h3>NGINX</h3>
+                    <p>Serves the web application to the user.</p>
+                </div>
+
+                <div class="flow-arrow">→</div>
+
+                <div class="architecture-step final-step">
+                    <div class="step-number">04</div>
+                    <div class="step-icon">⌁</div>
+                    <h3>Web UI</h3>
+                    <p>Accessible through the local web endpoint.</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Technology -->
+        <section class="section technology-section" id="technology">
+
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">TECHNOLOGY STACK</span>
+                    <h2>Built with DevOps principles</h2>
+                </div>
+            </div>
+
+            <div class="technology-grid">
+
+                <div class="technology-card">
+                    <span class="tech-number">01</span>
+                    <h3>Terraform</h3>
+                    <p>
+                        Declarative infrastructure provisioning and lifecycle
+                        management.
+                    </p>
+                </div>
+
+                <div class="technology-card">
+                    <span class="tech-number">02</span>
+                    <h3>Docker</h3>
+                    <p>
+                        Consistent and isolated application runtime using
+                        containers.
+                    </p>
+                </div>
+
+                <div class="technology-card">
+                    <span class="tech-number">03</span>
+                    <h3>GitHub Actions</h3>
+                    <p>
+                        Automated infrastructure validation and continuous
+                        integration.
+                    </p>
+                </div>
+
+                <div class="technology-card">
+                    <span class="tech-number">04</span>
+                    <h3>NGINX</h3>
+                    <p>
+                        Lightweight and reliable web server for the
+                        application.
+                    </p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="cta-section">
+
+            <div class="cta-content">
+
+                <span class="eyebrow">INFRASTRUCTURE AS CODE</span>
+
+                <h2>
+                    If infrastructure can be described,
+                    <span>it can be reproduced.</span>
+                </h2>
+
+                <p>
+                    This environment can be created, verified, destroyed and
+                    recreated entirely from version-controlled Terraform code.
+                </p>
+
+                <div class="command-display">
+                    <span>$</span>
+                    terraform apply
+                    <span class="cursor"></span>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer>
+        <div class="footer-brand">
+            <span class="brand-mark small">⌘</span>
+            <strong>IaC Web Stack</strong>
+        </div>
+
+        <div class="footer-info">
+            <span>Terraform Infrastructure</span>
+            <span>•</span>
+            <span id="clock">--:--:--</span>
+        </div>
+
+        <div class="footer-author">
+            Built as a DevOps IaC Capstone
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+
+</body>
+</html>

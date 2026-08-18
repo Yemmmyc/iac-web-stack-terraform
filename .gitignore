@@ -1,29 +1,32 @@
 # Terraform
-.terraform/
+**/.terraform/*
 *.tfstate
 *.tfstate.*
+*.tfplan
 crash.log
 crash.*.log
+
+# Terraform variable files that may contain secrets
 *.tfvars
 *.tfvars.json
-.terraform.lock.hcl
 
-# Environment / secrets
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Local environment
 .env
 .env.*
-!.env.example
+
+# IDE / editor
+.vscode/
+.idea/
 
 # OS files
 .DS_Store
 Thumbs.db
 
-# Editors
-.vscode/
-.idea/
-
 # Logs
 *.log
-
-# Node / frontend tooling if introduced later
-node_modules/
-dist/

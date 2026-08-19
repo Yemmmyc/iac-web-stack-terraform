@@ -8,7 +8,7 @@
 
 A reproducible, containerized web infrastructure stack managed through **Infrastructure as Code (IaC)** with Terraform.
 
-The project combines a responsive web interface, Docker, NGINX and Terraform to demonstrate how infrastructure can be defined, validated, provisioned, verified and reproduced without relying on manual configuration.
+The project combines a responsive web interface, Docker, NGINX, Terraform and GitHub Actions to demonstrate how infrastructure can be defined, validated, provisioned, verified and reproduced without relying on manual configuration or paid cloud infrastructure.
 
 > **Project principle:** Define infrastructure as code, validate it automatically, and reproduce the environment consistently instead of configuring infrastructure manually.
 
@@ -16,7 +16,7 @@ The project combines a responsive web interface, Docker, NGINX and Terraform to 
 
 ## 1. Project Overview
 
-This project demonstrates a small but production-minded infrastructure workflow:
+This project demonstrates a complete local IaC workflow:
 
 ```text
 Web Application
@@ -43,7 +43,7 @@ Web Application
 
 Terraform manages the infrastructure resources while Docker provides the runtime environment and NGINX serves the application.
 
-The project is intentionally designed to run locally using **Windows + WSL2 + Docker**, making it possible to demonstrate IaC practices without depending on paid cloud infrastructure.
+The project is intentionally designed to run locally using **Windows + WSL2 + Docker**, making it possible to demonstrate infrastructure automation, validation and CI without depending on paid cloud infrastructure.
 
 ---
 
@@ -68,31 +68,13 @@ This project applies Infrastructure as Code principles to a practical web stack.
 
 Terraform defines the desired infrastructure state. Docker provides the application runtime, while NGINX serves the web application.
 
-The environment can therefore follow a repeatable lifecycle:
+The environment follows a repeatable lifecycle:
 
 ```text
-Defined
-   |
-   v
-Reviewed
-   |
-   v
-Validated
-   |
-   v
-Planned
-   |
-   v
-Applied
-   |
-   v
-Verified
-   |
-   v
-Destroyed
-   |
-   v
-Recreated
+Defined -> Reviewed -> Validated -> Planned -> Applied
+   ^                                             |
+   |                                             v
+Recreated <- Destroyed <- Verified <- Health Check
 ```
 
 ---
@@ -110,7 +92,7 @@ Recreated
 | WSL2 / Ubuntu | Local Linux development environment |
 | Git | Source control |
 | GitHub | Repository and collaboration |
-| GitHub Actions | Automated Terraform validation |
+| GitHub Actions | Automated Terraform validation and CI |
 
 ### Terraform Provider
 
@@ -173,7 +155,7 @@ Terraform provisions three primary resources.
 iac-web-network
 ```
 
-A dedicated bridge network provides an isolated network for the application container.
+A dedicated bridge network provides an explicit network boundary for the application container.
 
 ### Docker Image
 
@@ -212,7 +194,7 @@ The container includes a Docker health check that tests the NGINX endpoint:
 GET http://localhost/
 ```
 
-The health check uses `wget` and is configured with retries and a timeout.
+The health check uses `wget` with retries and a timeout.
 
 A successful deployment reports:
 
@@ -220,7 +202,7 @@ A successful deployment reports:
 healthy
 ```
 
-This provides a simple infrastructure-level verification that the web server is responding inside the container.
+This provides infrastructure-level verification that the web server is responding inside the container.
 
 ---
 
@@ -346,11 +328,11 @@ Expected:
 HTTP/1.1 200 OK
 ```
 
+The implementation was successfully verified locally with a healthy Docker container and an HTTP 200 response from NGINX.
+
 ---
 
 ## 10. Terraform Lifecycle
-
-The project demonstrates the basic Terraform lifecycle:
 
 ### Initialize
 
@@ -409,7 +391,7 @@ The repository includes:
 .github/workflows/terraform.yml
 ```
 
-The current CI workflow runs on pushes and pull requests targeting `main`.
+The workflow runs on pushes and pull requests targeting `main`.
 
 It performs:
 
@@ -432,11 +414,9 @@ Terraform validate
 Terraform plan
 ```
 
-This ensures that infrastructure changes are automatically checked before they are accepted into the project.
+### CI Result
 
-### Current CI Result
-
-The Terraform validation workflow has successfully completed:
+The GitHub Actions Terraform validation workflow successfully passed:
 
 ```text
 Terraform Format Check     PASS
@@ -445,7 +425,9 @@ Terraform Validate         PASS
 Terraform Plan             PASS
 ```
 
-The workflow is intentionally limited to validation and planning. It does **not** deploy infrastructure from GitHub Actions.
+The workflow validates infrastructure changes and generates a plan without applying infrastructure from GitHub Actions.
+
+This provides a CI quality gate while keeping infrastructure deployment under controlled execution.
 
 ---
 
@@ -477,101 +459,86 @@ No cloud credentials or infrastructure secrets should be committed to the reposi
 
 ### Local-first architecture
 
-The project deliberately uses local infrastructure so that the complete IaC workflow can be demonstrated without creating unnecessary cloud costs.
+The project uses local infrastructure so the complete IaC workflow can be demonstrated without creating unnecessary cloud costs.
 
 ### Terraform-managed Docker resources
 
-Rather than manually running:
+Instead of manually executing:
 
 ```bash
 docker run ...
 docker network create ...
 ```
 
-the project defines the desired infrastructure in Terraform.
+the desired infrastructure is declared in Terraform.
 
-This makes the environment reproducible and reviewable.
+This makes the environment reproducible, reviewable and easier to recreate.
 
 ### Health checks
 
-The container health check provides a simple automated signal that the web service is operational.
+The container health check provides an automated signal that the web service is operational.
 
-### CI validation before deployment
+### CI validation
 
-GitHub Actions validates the Terraform configuration and generates a plan without changing infrastructure.
+GitHub Actions automatically checks formatting, initialization, validation and planning.
 
-This creates a safer foundation for a future deployment stage.
+### Separation of concerns
+
+The web application lives under `app/`, the image definition is represented by `Dockerfile`, and infrastructure definitions live under `terraform/`.
 
 ---
 
-## 14. Current Architecture
+## 14. Final Architecture
 
 ```text
-                    GitHub
-                       |
-                       | push / pull request
-                       v
-               GitHub Actions
-                       |
-             Terraform validation
-                       |
-          +------------+------------+
-          |                         |
-       fmt-check                 validate
-          |                         |
-          +------------+------------+
-                       |
-                     plan
-                       |
-                       v
-                Terraform Code
-                       |
-                       v
-                 Docker Provider
-                       |
-          +------------+------------+
-          |            |            |
-          v            v            v
-       Network       Image       Container
-          |            |            |
-          +------------+------------+
-                       |
-                     NGINX
-                       |
-                       v
-                Web Application
-                       |
-                       v
-              http://localhost:8090
+                         GitHub Repository
+                                |
+                    push / pull request
+                                |
+                                v
+                       GitHub Actions CI
+                                |
+              +-----------------+-----------------+
+              |                 |                 |
+              v                 v                 v
+        fmt -check           init             validate
+              |                 |                 |
+              +-----------------+-----------------+
+                                |
+                                v
+                              plan
+                                |
+                                v
+                       Terraform Configuration
+                                |
+                                v
+                       Docker Provider
+                                |
+             +------------------+------------------+
+             |                  |                  |
+             v                  v                  v
+       Docker Network      Docker Image      Docker Container
+       iac-web-network     iac-web-stack:     iac-web-stack
+                           local                    |
+                                                    v
+                                                   NGINX
+                                                    |
+                                                    v
+                                           Web Application
+                                                    |
+                                                    v
+                                         http://localhost:8090
 ```
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the detailed architecture documentation.
 
 ---
 
-## 15. Future Improvements
+## 15. Completed Implementation
 
-Planned improvements include:
+The project has progressed from an initial local web application to a working Terraform-managed IaC solution with CI validation.
 
-- Docker image build validation in CI
-- automated application smoke testing
-- improved deployment automation
-- public hosting/deployment for external access
-- architecture diagram and project screenshots
-- stronger security scanning
-- optional remote Terraform state
-- environment-specific configuration
-- automated release/versioning
-
-The goal is to evolve the project from a local IaC demonstration into a more complete CI/CD and deployment reference architecture.
-
----
-
-## 16. Project Status
-
-**Current status: Active development**
-
-Implemented:
+Completed capabilities:
 
 - [x] Responsive web application
 - [x] Dockerized application
@@ -581,30 +548,82 @@ Implemented:
 - [x] Terraform-managed Docker image
 - [x] Terraform-managed Docker container
 - [x] Container health check
+- [x] Terraform formatting validation
+- [x] Terraform initialization
 - [x] Terraform validation
 - [x] Terraform plan
+- [x] Terraform apply
+- [x] Terraform state tracking
+- [x] Deployment verification with Docker
+- [x] HTTP endpoint verification
 - [x] Git repository
 - [x] GitHub repository
-- [x] GitHub Actions Terraform CI
-
-Next:
-
-- [ ] Docker CI validation
-- [ ] Architecture documentation
-- [ ] Public deployment
-- [ ] Final portfolio presentation
+- [x] GitHub Actions workflow
+- [x] Automated Terraform CI validation
+- [x] Architecture documentation
+- [x] Project README documentation
 
 ---
 
-## 17. Author
+## 16. Project Status
+
+**Current status: Completed capstone implementation**
+
+The core project objectives have been achieved.
+
+The final implementation demonstrates:
+
+```text
+Application
+     |
+     v
+Docker
+     |
+     v
+Terraform
+     |
+     v
+Infrastructure
+     |
+     v
+Health Verification
+     |
+     v
+GitHub Actions CI
+     |
+     v
+Documented, Reproducible IaC Workflow
+```
+
+The repository is ready for final portfolio presentation and submission.
+
+---
+
+## 17. Future Enhancements
+
+The core project is complete. The following are optional extensions rather than outstanding requirements:
+
+- public cloud deployment
+- remote Terraform state
+- environment-specific configuration
+- additional security scanning
+- automated release/versioning
+- more extensive application smoke testing
+- production-grade observability
+- additional CI/CD deployment stages
+
+These enhancements are deliberately separated from the completed capstone scope.
+
+---
+
+## 18. Author
 
 **Oluwayemisi Okunrounmu**
 
 IT Technical Support | Infrastructure | Cloud | DevOps
 
 **3MTT NextGen Cohort Capstone Project**
-**Fellow ID  FE/23/34540833**
+
+**Fellow ID:** FE/23/34540833
 
 GitHub: [@Yemmmyc](https://github.com/Yemmmyc)
-
-Repository: [iac-web-stack-terraform](https://github.com/Yemmmyc/iac-web-stack-terraform)

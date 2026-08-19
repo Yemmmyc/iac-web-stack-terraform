@@ -1,172 +1,161 @@
-# IaC Web Stack — Architecture Documentation
+# Architecture Documentation
 
-## 1. Purpose
+## Infrastructure as Code (IaC) Web Stack with Terraform
 
-This document describes the architecture, infrastructure components, request flow and operational lifecycle of the **Infrastructure as Code (IaC) Web Stack with Terraform**.
-
-The project demonstrates how a small web application can be packaged, provisioned and managed through reproducible infrastructure definitions.
+**Project:** iac-web-stack-terraform  
+**Author:** Oluwayemisi Okunrounmu  
+**Programme:** 3MTT NextGen Cohort Capstone Project  
+**Fellow ID:** FE/23/34540833
 
 ---
 
-## 2. High-Level Architecture
+## 1. Architecture Overview
+
+The project implements a local, reproducible web infrastructure stack using Terraform and Docker.
+
+The architecture separates the application layer from the infrastructure layer:
 
 ```text
-                         +-----------------------+
-                         |        GitHub         |
-                         |   Source Repository   |
-                         +-----------+-----------+
-                                     |
-                              push / pull request
-                                     |
-                                     v
-                         +-----------------------+
-                         |    GitHub Actions     |
-                         |                       |
-                         | Terraform fmt-check   |
-                         | Terraform init        |
-                         | Terraform validate    |
-                         | Terraform plan        |
-                         +-----------+-----------+
-                                     |
-                              Terraform code
-                                     |
-                                     v
-                         +-----------------------+
-                         |      Terraform        |
-                         |                       |
-                         |  Docker Provider      |
-                         +-----------+-----------+
-                                     |
-                +--------------------+--------------------+
-                |                    |                    |
-                v                    v                    v
-       +----------------+   +----------------+   +-----------------+
-       | Docker Network |   |  Docker Image  |   | Docker Container|
-       |                |   |                |   |                 |
-       | iac-web-network|   |iac-web-stack   |   | iac-web-stack   |
-       +----------------+   +----------------+   +--------+--------+
-                                                          |
-                                                          v
-                                                   +-------------+
-                                                   |    NGINX    |
-                                                   | Port 80     |
-                                                   +------+------+
-                                                          |
-                                                          v
-                                               +------------------+
-                                               | Web Application  |
-                                               | HTML/CSS/JS      |
-                                               +--------+---------+
-                                                        |
-                                                        v
-                                               Host port 8090
-                                                        |
-                                                        v
-                                           http://localhost:8090
+                         GitHub Repository
+                                |
+                    push / pull request
+                                |
+                                v
+                       GitHub Actions CI
+                                |
+              +-----------------+-----------------+
+              |                 |                 |
+              v                 v                 v
+        fmt -check           init             validate
+              |                 |                 |
+              +-----------------+-----------------+
+                                |
+                                v
+                              plan
+                                |
+                                v
+                       Terraform Configuration
+                                |
+                                v
+                       Docker Provider
+                                |
+             +------------------+------------------+
+             |                  |                  |
+             v                  v                  v
+       Docker Network      Docker Image      Docker Container
+       iac-web-network     iac-web-stack:     iac-web-stack
+                           local                    |
+                                                    v
+                                                   NGINX
+                                                    |
+                                                    v
+                                           Web Application
+                                                    |
+                                                    v
+                                         http://localhost:8090
 ```
+
+Terraform is responsible for declaring and managing the Docker infrastructure. Docker provides the runtime. NGINX serves the application.
 
 ---
 
-## 3. Runtime Environment
+## 2. Architecture Goals
 
-The local runtime consists of:
+The architecture was designed around these goals:
 
-```text
-Windows
-   |
-   v
-WSL2
-   |
-   v
-Ubuntu
-   |
-   v
-Docker Engine
-   |
-   v
-Terraform-managed resources
-```
-
-This arrangement provides a Linux-based development environment while allowing the application to be accessed from the Windows host through the published Docker port.
+1. **Reproducibility** — infrastructure should be recreated from code.
+2. **Consistency** — avoid manual Docker configuration.
+3. **Validation** — detect Terraform configuration problems before deployment.
+4. **Verification** — provide a health check and HTTP verification.
+5. **Low cost** — demonstrate the complete workflow locally.
+6. **Maintainability** — separate application, container and infrastructure concerns.
+7. **CI integration** — automatically validate infrastructure changes through GitHub Actions.
 
 ---
 
-## 4. Application Layer
+## 3. Component Architecture
+
+### 3.1 Application Layer
 
 The application is contained in:
 
 ```text
 app/
-+-- index.html
-+-- style.css
-+-- script.js
+├── index.html
+├── style.css
+└── script.js
 ```
 
-### index.html
+Responsibilities:
 
-Provides the structure and content of the web interface.
-
-### style.css
-
-Provides the visual design, responsive layout and presentation.
-
-### script.js
-
-Provides client-side interaction.
-
-The application is packaged into the Docker image rather than being served directly from the host filesystem.
+- `index.html` provides the page structure and content.
+- `style.css` provides presentation and responsive styling.
+- `script.js` provides client-side interaction.
 
 ---
 
-## 5. Container Layer
+### 3.2 Container Image Layer
 
-The Dockerfile defines how the application image is built.
+The root `Dockerfile` defines the application image.
 
-The resulting image is:
+The image packages:
 
 ```text
+Web Application
+      +
+NGINX
+      |
+      v
 iac-web-stack:local
 ```
 
-The image contains the web application and NGINX runtime.
+The resulting Docker image is managed by Terraform.
 
-NGINX listens on:
+---
+
+### 3.3 Web Server Layer
+
+NGINX runs inside the Docker container.
+
+Its role is to:
+
+- serve the static web application
+- listen on container port `80`
+- provide the HTTP endpoint tested by the container health check
+
+The application is accessed through:
 
 ```text
-Container port: 80
-```
-
-Terraform publishes the container port to:
-
-```text
-Host port: 8090
-```
-
-Therefore:
-
-```text
-Browser
-   |
-   v
-localhost:8090
-   |
-   v
-Docker port mapping
-   |
-   v
-Container:80
-   |
-   v
-NGINX
+http://localhost:8090
 ```
 
 ---
 
-## 6. Infrastructure Layer
+### 3.4 Terraform Layer
 
-Terraform manages three primary Docker resources.
+Terraform is the infrastructure orchestration layer.
 
-### 6.1 Docker Network
+The configuration is located in:
+
+```text
+terraform/
+├── main.tf
+├── outputs.tf
+├── provider.tf
+├── variables.tf
+├── versions.tf
+└── .terraform.lock.hcl
+```
+
+Terraform declares the desired Docker infrastructure and reconciles the local environment with that configuration.
+
+---
+
+## 4. Terraform Resource Model
+
+The project provisions three primary Docker resources.
+
+### 4.1 Docker Network
 
 Resource:
 
@@ -174,23 +163,24 @@ Resource:
 docker_network.web_network
 ```
 
-Name:
+Resulting network:
 
 ```text
 iac-web-network
 ```
 
-Driver:
+Configuration:
 
 ```text
-bridge
+Driver: bridge
+Scope:  local
 ```
 
-The network provides a dedicated Docker networking boundary for the application.
+The network gives the application container a dedicated Docker network.
 
 ---
 
-### 6.2 Docker Image
+### 4.2 Docker Image
 
 Resource:
 
@@ -198,17 +188,17 @@ Resource:
 docker_image.web_image
 ```
 
-Name:
+Image:
 
 ```text
 iac-web-stack:local
 ```
 
-Terraform ensures that the required image exists before the application container is created.
+The image is built from the project's Dockerfile and retained locally.
 
 ---
 
-### 6.3 Docker Container
+### 4.3 Docker Container
 
 Resource:
 
@@ -216,153 +206,255 @@ Resource:
 docker_container.web
 ```
 
-Name:
+Container name:
 
 ```text
 iac-web-stack
 ```
 
-The container:
+Port mapping:
 
-- uses the Terraform-managed image
-- connects to the Terraform-managed network
-- publishes port 80 to host port 8090
-- uses a restart policy
-- exposes Docker labels for identification
-- includes an HTTP health check
+```text
+Host port       Container port
+-----------     --------------
+8090      --->  80
+```
+
+The container is configured to restart unless stopped manually.
+
+It also carries project metadata labels:
+
+```text
+project     = iac-web-stack
+managed-by  = terraform
+environment = local
+```
 
 ---
 
-## 7. Container Health Check
+## 5. Container Health Architecture
 
-The container uses a health check equivalent to:
+The container contains an automated health check.
+
+The check executes:
 
 ```text
 wget --no-verbose --tries=1 --spider http://localhost/
 ```
 
-The health check verifies the NGINX endpoint from inside the container.
+The health check is configured with:
 
-The desired state is:
+```text
+Interval: 30 seconds
+Timeout:  5 seconds
+Retries:  3
+```
+
+The expected healthy state is:
 
 ```text
 healthy
 ```
 
-This is separate from Terraform validation.
+This distinguishes:
 
-### Terraform validation
+```text
+Container is running
+```
 
-Answers:
+from:
 
-> Is the infrastructure configuration syntactically and semantically valid?
-
-### Docker health check
-
-Answers:
-
-> Is the web service actually responding inside the running container?
-
-Together they provide stronger verification.
+```text
+Web service is responding
+```
 
 ---
 
-## 8. Infrastructure Lifecycle
+## 6. Network Flow
+
+The request path is:
+
+```text
+Browser / curl
+      |
+      | HTTP :8090
+      v
+Docker host
+      |
+      | port mapping
+      v
+iac-web-stack container
+      |
+      | HTTP :80
+      v
+NGINX
+      |
+      v
+Static web application
+```
+
+The Docker container is attached to:
+
+```text
+iac-web-network
+```
+
+---
+
+## 7. Infrastructure Lifecycle
 
 The intended lifecycle is:
 
 ```text
-Terraform configuration
+Terraform Configuration
           |
           v
-       terraform fmt
+        init
           |
           v
-      terraform validate
+        fmt
           |
           v
-       terraform plan
+      validate
           |
           v
-      terraform apply
+         plan
           |
           v
- Docker resources created
+        apply
           |
           v
-   Container health check
+     Docker Resources
           |
           v
-     HTTP smoke test
+       Health Check
           |
           v
-      Infrastructure
-        operational
+     HTTP Verification
+          |
+          v
+       Application
 ```
 
-To remove the environment:
+When the environment is no longer required:
 
-```text
-terraform destroy
-       |
-       v
-Docker container removed
-       |
-       v
-Docker network removed
-       |
-       v
-Managed infrastructure gone
+```bash
+terraform -chdir=terraform destroy
 ```
 
-The environment can subsequently be recreated with `terraform apply`.
+removes the Terraform-managed Docker resources.
+
+The environment can subsequently be recreated with:
+
+```bash
+terraform -chdir=terraform apply
+```
 
 ---
 
-## 9. CI Architecture
+## 8. CI/CD Architecture
 
-GitHub Actions provides the current continuous integration layer.
+The repository contains:
 
 ```text
-Developer
-   |
-   v
-git push / pull request
-   |
-   v
-GitHub
-   |
-   v
-GitHub Actions
-   |
-   +-- Checkout
-   |
-   +-- Setup Terraform
-   |
-   +-- terraform fmt -check
-   |
-   +-- terraform init
-   |
-   +-- terraform validate
-   |
-   +-- terraform plan
+.github/workflows/terraform.yml
 ```
 
-The CI workflow does **not** currently deploy the application.
+The workflow is triggered by:
 
-This is intentional.
+- pushes to `main`
+- pull requests targeting `main`
 
-The GitHub-hosted runner has its own Docker environment and is not the same Docker daemon running inside the developer's WSL2 environment.
+The CI sequence is:
 
-Keeping the current workflow focused on validation avoids coupling the public CI runner to the developer's local infrastructure.
+```text
+GitHub Event
+     |
+     v
+Checkout
+     |
+     v
+Setup Terraform
+     |
+     v
+terraform fmt -check
+     |
+     v
+terraform init
+     |
+     v
+terraform validate
+     |
+     v
+terraform plan
+```
+
+### CI Responsibilities
+
+#### Formatting
+
+```bash
+terraform fmt -check -recursive
+```
+
+Ensures Terraform configuration follows canonical formatting.
+
+#### Initialization
+
+```bash
+terraform init -input=false
+```
+
+Initializes Terraform and installs the locked provider version.
+
+#### Validation
+
+```bash
+terraform validate
+```
+
+Checks the configuration for syntax and internal consistency.
+
+#### Planning
+
+```bash
+terraform plan -input=false
+```
+
+Calculates infrastructure changes without applying them.
 
 ---
 
-## 10. State Management
+## 9. CI Boundary
 
-Terraform maintains a local state file during development.
+The current GitHub Actions workflow deliberately stops at planning:
 
-The state records resources managed by Terraform, including:
+```text
+CI
+ |
+ +-- fmt
+ +-- init
+ +-- validate
+ +-- plan
+ |
+ STOP
+```
+
+It does not automatically execute:
+
+```text
+terraform apply
+```
+
+This is intentional. Automated validation is separated from infrastructure mutation so that deployment remains under deliberate operator control.
+
+---
+
+## 10. Terraform State
+
+Terraform maintains state locally during development.
+
+The state represents resources managed by Terraform, including:
 
 ```text
 docker_container.web
@@ -370,204 +462,315 @@ docker_image.web_image
 docker_network.web_network
 ```
 
-Local state files are excluded from Git version control.
+The repository `.gitignore` excludes:
 
-The provider lock file is committed:
+```text
+*.tfstate
+*.tfstate.*
+.terraform/
+```
+
+The provider lock file is retained:
 
 ```text
 terraform/.terraform.lock.hcl
 ```
 
-This allows Terraform to consistently select the tested provider version.
+This supports consistent provider selection.
 
 ---
 
-## 11. Security Boundaries
+## 11. Security Considerations
 
-The project currently uses a local development architecture.
+The project follows basic security and repository hygiene practices.
 
-Important security practices include:
+### Secrets exclusion
 
-- no credentials stored in Terraform files
-- no `.env` files committed
-- Terraform state excluded from Git
-- Terraform variable files excluded by `.gitignore`
-- CI uses read-only repository permissions
-- infrastructure deployment is not performed automatically by the current CI workflow
+The repository excludes:
 
-For a production deployment, additional controls would be appropriate, including:
+```text
+*.tfvars
+.env
+.env.*
+```
 
-- secret management
-- remote state with locking
-- least-privilege cloud identity
-- image vulnerability scanning
-- HTTPS/TLS
-- dependency scanning
-- network restrictions
-- deployment approvals
+### State exclusion
+
+Terraform state is excluded from Git.
+
+### Provider locking
+
+The Docker provider selection is recorded in:
+
+```text
+terraform/.terraform.lock.hcl
+```
+
+### Local-first execution
+
+The core implementation does not require cloud credentials.
 
 ---
 
-## 12. Why Terraform?
-
-The project could be started manually with Docker commands, but manual commands do not provide the same declarative infrastructure model.
-
-Terraform allows the desired state to be expressed as code.
-
-The configuration describes a desired state where:
+## 12. Repository Architecture
 
 ```text
-network exists
-image exists
-container exists
-container uses the image
-container joins the network
-port 8090 maps to port 80
-health check is configured
+iac-web-stack-terraform/
+|
++-- .github/
+|   +-- workflows/
+|       +-- terraform.yml
+|
++-- app/
+|   +-- index.html
+|   +-- script.js
+|   +-- style.css
+|
++-- docs/
+|   +-- ARCHITECTURE.md
+|
++-- terraform/
+|   +-- .terraform.lock.hcl
+|   +-- main.tf
+|   +-- outputs.tf
+|   +-- provider.tf
+|   +-- variables.tf
+|   +-- versions.tf
+|
++-- .dockerignore
++-- .gitignore
++-- Dockerfile
++-- README.md
 ```
 
-Terraform then compares the desired state with the current state and determines the required actions.
+Separation of concerns:
+
+```text
+app/          Application
+Dockerfile    Container image definition
+terraform/    Infrastructure definition
+.github/      CI automation
+docs/         Documentation
+```
 
 ---
 
-## 13. Reproducibility
+## 13. Verification Architecture
 
-A major goal is that the environment should not depend on undocumented manual steps.
+The implementation uses multiple levels of verification.
 
-A new developer should be able to:
+### Terraform-level
 
-```text
-Clone repository
-      |
-      v
-Install prerequisites
-      |
-      v
-terraform init
-      |
-      v
-terraform validate
-      |
-      v
-terraform plan
-      |
-      v
-terraform apply
-      |
-      v
-Access localhost:8090
+```bash
+terraform -chdir=terraform validate
 ```
 
-This is the core value of the project.
+### Infrastructure-level
 
----
-
-## 14. Current Verification Evidence
-
-The infrastructure has been successfully tested locally.
-
-### Terraform
-
-```text
-terraform validate
-Success! The configuration is valid.
+```bash
+terraform -chdir=terraform show
+terraform -chdir=terraform output
 ```
 
-### Docker
+### Container-level
 
-```text
-iac-web-stack
-Up ... (healthy)
+```bash
+docker ps --filter "name=iac-web-stack"
 ```
 
-### HTTP
+### Health-level
+
+```bash
+docker inspect --format='{{.State.Health.Status}}' iac-web-stack
+```
+
+Expected:
+
+```text
+healthy
+```
+
+### Application-level
+
+```bash
+curl -I http://localhost:8090
+```
+
+Expected:
 
 ```text
 HTTP/1.1 200 OK
-Server: nginx
-Content-Type: text/html
 ```
 
-### Terraform resources
-
-The deployed state contains:
+Verification therefore progresses through:
 
 ```text
-docker_container.web
-docker_image.web_image
-docker_network.web_network
-```
-
-### CI
-
-GitHub Actions successfully completed:
-
-```text
-Terraform Format Check
-Terraform Init
-Terraform Validate
-Terraform Plan
+Terraform
+   |
+   v
+Infrastructure
+   |
+   v
+Container
+   |
+   v
+Health Check
+   |
+   v
+HTTP Application
 ```
 
 ---
 
-## 15. Future Architecture
+## 14. Design Decisions
 
-The next evolution of the project can introduce:
+### Local-first
 
-```text
-Developer
-    |
-    v
-GitHub
-    |
-    v
-CI ----> Test ----> Security Scan
-    |
-    v
-Container Image
-    |
-    v
-Container Registry
-    |
-    v
-Deployment Platform
-    |
-    v
-Public HTTPS URL
-```
+A local Docker environment was selected to make the project reproducible without paid cloud resources.
 
-Possible future components include a container registry, public hosting, HTTPS, remote Terraform state and deployment approvals.
+### Declarative infrastructure
 
-The exact deployment platform should be selected based on project requirements, cost constraints and hackathon rules.
+Terraform describes the desired state rather than relying on manually executed Docker commands.
+
+### Dedicated network
+
+A named Docker bridge network provides an explicit network boundary for the application.
+
+### Health check
+
+The health check verifies application availability inside the container rather than relying only on process status.
+
+### CI validation
+
+GitHub Actions provides automated infrastructure quality checks for repository changes.
+
+### No automatic apply in CI
+
+The CI pipeline stops at `plan`, keeping infrastructure mutation under deliberate operator control.
 
 ---
 
-## 16. Architecture Summary
-
-The project demonstrates a complete foundational IaC workflow:
+## 15. Operational Workflow
 
 ```text
-Code
- |
- v
-Version Control
- |
- v
-CI Validation
- |
- v
-Terraform Plan
- |
- v
-Infrastructure Provisioning
- |
- v
-Container Health
- |
- v
-Application Verification
+Developer changes code
+        |
+        v
+Git commit
+        |
+        v
+GitHub push / pull request
+        |
+        v
+GitHub Actions
+        |
+        +--> fmt check
+        |
+        +--> init
+        |
+        +--> validate
+        |
+        +--> plan
+        |
+        v
+Review
+        |
+        v
+Terraform apply
+        |
+        v
+Docker resources
+        |
+        v
+Health verification
+        |
+        v
+HTTP verification
 ```
 
-The architecture deliberately separates **infrastructure definition**, **application packaging**, **runtime execution** and **continuous integration**.
+This combines source control, automated validation and reproducible infrastructure management.
 
+---
+
+## 16. Completed Architecture Objectives
+
+- [x] Application packaged in Docker
+- [x] NGINX web serving
+- [x] Terraform Docker provider
+- [x] Terraform-managed Docker network
+- [x] Terraform-managed Docker image
+- [x] Terraform-managed Docker container
+- [x] Container health check
+- [x] Terraform formatting validation
+- [x] Terraform initialization
+- [x] Terraform validation
+- [x] Terraform plan
+- [x] Terraform apply
+- [x] Terraform state tracking
+- [x] Docker runtime verification
+- [x] HTTP application verification
+- [x] GitHub repository integration
+- [x] GitHub Actions Terraform CI
+- [x] Architecture documentation
+
+---
+
+## 17. Final State
+
+```text
+                         SOURCE CONTROL
+                              |
+                              v
+                     GitHub Repository
+                              |
+                              v
+                      GitHub Actions
+                              |
+                   Terraform CI Validation
+                              |
+                              v
+                    Terraform Configuration
+                              |
+                              v
+                       Docker Provider
+                              |
+             +----------------+----------------+
+             |                |                |
+             v                v                v
+          Network           Image          Container
+             |                |                |
+             +----------------+----------------+
+                              |
+                              v
+                            NGINX
+                              |
+                              v
+                       Web Application
+                              |
+                              v
+                    localhost:8090
+                              |
+                              v
+                         HTTP 200 OK
+                              |
+                              v
+                    HEALTHY CONTAINER
+```
+
+The completed architecture provides a practical demonstration of Infrastructure as Code, containerization, automated validation and operational verification.
+
+---
+
+## 18. Future Extensions
+
+The current capstone architecture is complete. Possible future extensions include:
+
+- remote Terraform state
+- environment-specific configurations
+- public cloud deployment
+- stronger security scanning
+- automated release/versioning
+- production-grade observability
+- additional deployment stages
+
+These are enhancements to the completed architecture rather than unresolved project requirements.
